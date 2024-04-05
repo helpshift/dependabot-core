@@ -1,3 +1,4 @@
+# typed: true
 # frozen_string_literal: true
 
 require "dependabot/bundler/file_parser"
@@ -37,9 +38,13 @@ module Dependabot
 
         private
 
-        attr_reader :dependency, :dependency_files, :repo_contents_path,
-                    :credentials, :target_version, :requirements_update_strategy,
-                    :options
+        attr_reader :dependency
+        attr_reader :dependency_files
+        attr_reader :repo_contents_path
+        attr_reader :credentials
+        attr_reader :target_version
+        attr_reader :requirements_update_strategy
+        attr_reader :options
 
         def update_multiple_dependencies?
           @update_multiple_dependencies
@@ -50,6 +55,7 @@ module Dependabot
             updated_deps, specs = NativeHelpers.run_bundler_subprocess(
               bundler_version: bundler_version,
               function: "force_update",
+              options: options,
               args: {
                 dir: tmp_dir,
                 dependency_name: dependency.name,
@@ -84,7 +90,7 @@ module Dependabot
           #
           # This is kind of a bug in Bundler, and we should try to fix it,
           # but resolving it won't necessarily be easy.
-          updated_deps.map do |dep|
+          updated_deps.filter_map do |dep|
             original_dep =
               original_dependencies.find { |d| d.name == dep.fetch("name") }
             spec = specs.find { |d| d.fetch("name") == dep.fetch("name") }
@@ -92,7 +98,7 @@ module Dependabot
             next if spec.fetch("version") == original_dep.version
 
             build_dependency(original_dep, spec)
-          end.compact
+          end
         end
 
         def build_dependency(original_dep, updated_spec)
@@ -114,9 +120,9 @@ module Dependabot
         end
 
         def source_for(dependency)
-          dependency.requirements.
-            find { |r| r.fetch(:source) }&.
-            fetch(:source)
+          dependency.requirements
+                    .find { |r| r.fetch(:source) }
+                    &.fetch(:source)
         end
 
         def gemfile
