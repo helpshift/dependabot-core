@@ -1,3 +1,4 @@
+# typed: true
 # frozen_string_literal: true
 
 require "open3"
@@ -36,7 +37,7 @@ module Dependabot
         def updated_dependencies_after_full_unlock
           changed_deps = install_metadata
 
-          original_dependency_details.map do |original_dep|
+          original_dependency_details.filter_map do |original_dep|
             new_version = changed_deps.fetch(original_dep.name, nil)
             next unless new_version
 
@@ -60,12 +61,13 @@ module Dependabot
               previous_requirements: original_dep.requirements,
               package_manager: original_dep.package_manager
             )
-          end.compact
+          end
         end
 
         private
 
-        attr_reader :dependency, :dependency_files
+        attr_reader :dependency
+        attr_reader :dependency_files
 
         def fetch_latest_resolvable_version(unlock_requirement)
           changed_deps = install_metadata
@@ -85,9 +87,9 @@ module Dependabot
 
         def check_install_result(changed_deps)
           other_deps_bumped =
-            changed_deps.
-            keys.
-            reject { |name| name == dependency.name }
+            changed_deps
+            .keys
+            .reject { |name| name == dependency.name }
 
           return :forced_full_unlock_bump if other_deps_bumped.any?
 
@@ -158,10 +160,8 @@ module Dependabot
           # `elm install <dependency_name>` to generate the install plan
           %w(dependencies test-dependencies).each do |type|
             json[type].delete(dependency.name) if json.dig(type, dependency.name)
-
-            %w(direct indirect).each do |category|
-              json[type][category].delete(dependency.name) if json.dig(type, category, dependency.name)
-            end
+            json[type]["direct"].delete(dependency.name) if json.dig(type, "direct", dependency.name)
+            json[type]["indirect"].delete(dependency.name) if json.dig(type, "indirect", dependency.name)
           end
 
           json["source-directories"] = []
@@ -184,11 +184,11 @@ module Dependabot
         end
 
         def version_class
-          Elm::Version
+          dependency.version_class
         end
 
         def requirement_class
-          Elm::Requirement
+          dependency.requirement_class
         end
       end
     end

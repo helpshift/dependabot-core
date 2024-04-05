@@ -1,3 +1,4 @@
+# typed: true
 # frozen_string_literal: true
 
 module Functions
@@ -33,7 +34,9 @@ module Functions
 
     private
 
-    attr_reader :dependency_name, :target_version, :lockfile_name
+    attr_reader :dependency_name
+    attr_reader :target_version
+    attr_reader :lockfile_name
 
     def parent_specs
       version = Gem::Version.new(target_version)
@@ -63,7 +66,7 @@ module Functions
       if spec.name == top_level.name
         "#{spec.name} (#{spec.version}) requires #{dependency_name} (#{dependency.requirement})"
       else
-        "#{top_level.name} (#{top_level.version}) requires #{dependency_name} "\
+        "#{top_level.name} (#{top_level.version}) requires #{dependency_name} " \
           "(#{dependency.requirement}) via #{spec.name} (#{spec.version})"
       end
     end
